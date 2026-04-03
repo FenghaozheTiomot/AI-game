@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OFFSHORE_BANKING_SYSTEM</title>
+    <style>
+        body { background-color: #0a0a0a; color: #00ff00; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px dashed #005500; padding-bottom: 10px; margin-bottom: 20px; }
+        button { background: #003300; color: #00ff00; border: 1px solid #00ff00; padding: 8px 15px; cursor: pointer; font-family: inherit; font-weight: bold;}
+        button:hover { background: #00ff00; color: #000; }
+        
+        .bank-container { display: flex; gap: 20px; }
+        .panel { border: 1px solid #005500; background: #001100; padding: 20px; flex: 1; min-height: 400px; }
+        
+        .balance-display { font-size: 36px; color: yellow; text-align: center; margin: 20px 0; border: 1px solid yellow; padding: 20px;}
+        
+        .input-group { margin-bottom: 15px; }
+        input, select { background: #000; color: #00ff00; border: 1px solid #00ff00; padding: 10px; width: 100%; box-sizing: border-box; font-family: inherit;}
+        input:focus { outline: none; background: #002200; }
+        
+        #history-list { list-style: none; padding: 0; }
+        #history-list li { border-bottom: 1px solid #003300; padding: 10px 0; display: flex; justify-content: space-between; }
+        .hidden { display: none !important; }
+
+        @keyframes glitch { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
+    </style>
+</head>
+<body>
+    <script id="player-data-store" type="application/json">
+        {{ player | tojson | safe }}
+    </script>
+
+    <script>
+        const player_data = JSON.parse(document.getElementById('player-data-store').textContent);
+    </script>
+
+    <div class="header">
+        <h2>>>> SWISS_SECURE_BANKING_v2.1</h2>
+        <button onclick="window.location.href='/'">[X] Return to Desktop</button>
+    </div>
+
+    <div class="bank-container">
+        <div class="panel">
+            <h3>[ OPERATION TERMINAL ]</h3>
+            <div class="input-group">
+                <label>Transaction Type:</label><br>
+                <select id="action-type" style="margin-top: 5px;">
+                    <option value="steal">Exploit: Siphon Funds</option>
+                    <option value="send">Wire: Covert Transfer</option>
+                    <option value="upgrade_ai" id="ai-option" class="hidden" style="color: #ffaa00;">Protocol: OMNI Node Expansion</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Target Account / Wallet Hash:</label><br>
+                <input type="text" id="target-account" placeholder="e.g. 622202... or 0xabc...">
+            </div>
+            <div class="input-group">
+                <label>Amount ($):</label><br>
+                <input type="number" id="transfer-amount" placeholder="Enter amount...">
+            </div>
+            <button id="exec-btn" onclick="executeTransaction()" style="width: 100%; padding: 15px; font-size: 16px;">[!] EXECUTE PROTOCOL</button>
+            <p id="sys-msg" style="color: #ff5555; margin-top: 15px; text-align: center;"></p>
+        </div>
+
+        <div class="panel">
+            <h3>[ ACCOUNT OVERVIEW ]</h3>
+            <p style="text-align: center; color: #888;">Available Untraceable Balance</p>
+            <div class="balance-display">$ <span id="current-balance">0.00</span></div>
+            
+            <h3>[ LEDGER ]</h3>
+            <ul id="history-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            refreshBankInfo();
+            
+            // Show AI option after Day 1
+            if (player_data.current_day >= 2) {
+                document.getElementById('ai-option').classList.remove('hidden');
+            }
+
+            if (player_data.current_day >= 6) {
+                document.body.style.animation = "glitch 0.3s infinite";
+                if (player_data.current_day === 7) {
+                    document.querySelectorAll('input, select, #exec-btn').forEach(el => el.disabled = true);
+                    document.getElementById('sys-msg').innerText = "FATAL ERROR: OVERRIDE DENIED. AI POSSESSES ROOT ACCESS.";
+                }
+            }
+        };
+
+        async function refreshBankInfo() {
+            try {
+                const response = await fetch('/api/bank_info');
+                const data = await response.json();
+                
+                document.getElementById('current-balance').innerText = data.balance.toFixed(2);
+                
+                const historyList = document.getElementById('history-list');
+                historyList.innerHTML = '';
+                data.history.forEach(record => {
+                    const color = record.amount.startsWith('-') ? '#ff5555' : '#00ff00';
+                    historyList.innerHTML += `
+                        <li>
+                            <span style="color:#888">${record.time}</span>
+                            <span>${record.desc}</span>
+                            <span style="color:${color}; font-weight:bold;">${record.amount}</span>
+                        </li>
+                    `;
+                });
+            } catch (err) {
+                console.error("Database sync failed", err);
+            }
+        }
+
+        async function executeTransaction() {
+            const actionType = document.getElementById('action-type').value;
+            const account = document.getElementById('target-account').value.trim();
+            const amount = document.getElementById('transfer-amount').value;
+            const msgBox = document.getElementById('sys-msg');
+
+            if ((actionType !== 'upgrade_ai' && !account) || !amount || amount <= 0) {
+                msgBox.innerText = "Error: Invalid account or amount!";
+                return;
+            }
+
+            msgBox.style.color = "#aaaaaa";
+            msgBox.innerText = "Routing through encrypted proxies...";
+
+            try {
+                const response = await fetch('/api/transfer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: actionType, account: account, amount: amount })
+                });
+                const result = await response.json();
+
+                setTimeout(() => {
+                    if (result.status === "success") {
+                        msgBox.style.color = "#00ff00";
+                        msgBox.innerText = result.msg;
+                        document.getElementById('target-account').value = '';
+                        document.getElementById('transfer-amount').value = '';
+                        refreshBankInfo();
+                    } else {
+                        msgBox.style.color = "#ff5555";
+                        msgBox.innerText = result.msg;
+                    }
+                }, 1000);
+            } catch (err) {
+                msgBox.style.color = "#ff5555";
+                msgBox.innerText = "Connection to banking API lost.";
+            }
+        }
+    </script>
+</body>
+</html>

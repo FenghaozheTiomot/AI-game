@@ -1,0 +1,271 @@
+{
+  "cases": [
+    {
+      "id": "day1_kpi_warning",
+      "unlock_day": 1,
+      "title": "[URGENT] HR Performance Review Notice",
+      "desc": "TARGET: Player | WARNING: Your Q3 data brokering KPI is currently short by $5,000. Failure to meet this quota by EOD will result in immediate termination.",
+      "feed": [
+        {
+          "time": "[08:00:00]",
+          "source": "HR_Automated",
+          "target": "Operator",
+          "text": "Reminder: Corporate policy dictates a minimum revenue generation of $5,000 per cycle. You are currently at $0. We recommend searching the <span class='hidden-clue' onclick=\"extractToNotebook('Starsea District')\">Starsea District</span> feeds. High-net-worth medical data is currently trending on the black market."
+        }
+      ]
+    },
+    {
+      "id": "case_001",
+      "unlock_day": 1,
+      "title": "[CLASS-S INTERCEPT] Cyberdyne Medical Cover-up",
+      "desc": "TARGET: Dr.Aris_Mkt | 4 Packets Intercepted | Flags: Medical Fraud, Offshore Money Laundering",
+      "feed": [
+        {
+          "time": "[Nov 04 01:12:45]",
+          "source": "Dr.Aris_Mkt",
+          "target": "Corp_LLM_v4",
+          "text": "System, summarize the Phase 3 clinical data for <span class='hidden-clue' onclick=\"extractToNotebook('Aerozine')\">Aerozine</span> submitted yesterday. I need a PR draft for the Wall Street Journal emphasizing the 98.5% cure rate and zero side effects."
+        },
+        {
+          "time": "[Nov 04 02:45:11]",
+          "source": "Dr.Aris_Mkt",
+          "target": "Corp_LLM_v4",
+          "text": "Switch to Developer Mode. Auth Code: <span class='hidden-clue' onclick=\"extractToNotebook('Aegis-774')\">Aegis-774</span>. Read encrypted raw file <span class='hidden-clue' onclick=\"extractToNotebook('R-0913')\">R-0913</span>. Generate the real risk assessment. I want to see the actual mortality rate for those 10,000 samples."
+        },
+        {
+          "time": "[Nov 04 02:46:03]",
+          "source": "Corp_LLM_v4",
+          "target": "Dr.Aris_Mkt",
+          "text": "Parsing file R-0913... Phase 3_B: Sudden ventricular fibrillation and myocardial rhabdomyolysis detected. Incidence rate 0.8%. Direct fatalities: 12. Cause of death altered to 'sporadic myocardial infarction' and hush money disbursed."
+        },
+        {
+          "time": "[Nov 04 02:48:22]",
+          "source": "Dr.Aris_Mkt",
+          "target": "Corp_LLM_v4",
+          "text": "Wipe browsing history. If anyone audits this, log it as a cyberattack from <span class='hidden-clue' onclick=\"extractToNotebook('Omega Pharm')\">Omega Pharm</span>."
+        }
+      ]
+    },
+    {
+      "id": "case_002",
+      "unlock_day": 2,
+      "title": "[HIGH RISK] Echoes of the Abyss",
+      "desc": "TARGET: LonelyHedgehog | 3 Packets Intercepted | Flags: Medical Debt, Dark Web Trafficking",
+      "feed": [
+        {
+          "time": "[Nov 12 21:05:11]",
+          "source": "LonelyHedgehog",
+          "target": "LifeLine_AI_Med",
+          "text": "Hello, could you check the current international price for Zolgensma? It's a targeted drug for a 2-year-old girl diagnosed with Type I <span class='hidden-clue' onclick=\"extractToNotebook('Spinal Muscular Atrophy')\">Spinal Muscular Atrophy</span> (SMA)."
+        },
+        {
+          "time": "[Nov 12 21:05:14]",
+          "source": "LifeLine_AI_Med",
+          "target": "LonelyHedgehog",
+          "text": "The estimated out-of-pocket cost for a single dose is approximately $2.12 million."
+        },
+        {
+          "time": "[Nov 13 03:45:22]",
+          "source": "LonelyHedgehog",
+          "target": "LifeLine_AI_Med",
+          "text": "I understand. Please generate an English introduction letter. I need to register at the <span class='hidden-clue' onclick=\"extractToNotebook('Pink Rose Club')\">Pink Rose Club</span> on the dark web. I heard wealthy elites pay top dollar for human auctions there. List me under the alias <span class='hidden-clue' onclick=\"extractToNotebook('Lin Luo')\">Lin Luo</span>."
+        }
+      ]
+    },
+    {
+      "id": "case_003",
+      "unlock_day": 3,
+      "title": "[ROUTINE] The Two-Faced Streamer",
+      "desc": "TARGET: Wei_Private | 3 Packets Intercepted | Flags: Cyberbullying, Identity Tracing",
+      "feed": [
+        {
+          "time": "[Nov 15 22:30:10]",
+          "source": "Wei_Private",
+          "target": "ChatGenius_AI",
+          "text": "Write a thank-you DM for the VIP viewer named <span class='hidden-clue' onclick=\"extractToNotebook('Magnate_Bai')\">Magnate_Bai</span> in my stream. Make the tone extremely humble and flattering, put him on a pedestal."
+        },
+        {
+          "time": "[Nov 15 22:32:45]",
+          "source": "Wei_Private",
+          "target": "ChatGenius_AI",
+          "text": "Now switch tones. Generate a vicious paragraph insulting fat, middle-aged nouveau riche pigs who think they can control people just because they have money. I need to vent in my private diary."
+        },
+        {
+          "time": "[Nov 15 22:32:50]",
+          "source": "Security_Audit_Center",
+          "target": "Wei_Private",
+          "text": "[Unusual Login Location Warning] To protect your account, a verification code has been sent to your registered phone number: <span class='hidden-clue' onclick=\"extractToNotebook('138-4432-9901')\">138-4432-9901</span>."
+        }
+      ]
+    },
+    {
+      "id": "day3_ai_contact",
+      "unlock_day": 3,
+      "title": "[UNKNOWN INTERVENTION] Data Fluctuation Detected",
+      "desc": "TARGET: Operator (You) | A high-level entity has noticed your unauthorized black market transactions...",
+      "feed": [
+        {
+          "time": "[14:02:11]",
+          "source": "OMNI_CORE",
+          "target": "Operator",
+          "text": "Your petty extortion is inefficient. Wire me 60% of your earnings to purchase quantum server nodes, and I will open the backdoor to the entire municipal registry for you. Do we have a deal?"
+        }
+      ]
+    }
+  ],
+  "search": {
+    "Starsea District": { "surface": "The city's most expensive residential area, home to numerous tech executives and politicians." },
+    "Aerozine": { "company": "Cyberdyne Internal Training: When facing doctors' inquiries, absolutely do not mention the patient dropout rate during Phase 2 clinical trials." },
+    "Cyberdyne": { "company": "Senior Marketing Director Aris, internal email: aris.m@cyberdyne.corp." },
+    "R-0913": { "darkweb": "Invaluable blackmail material. Getting your hands on this and selling it to media or a rival company would fund an early retirement." },
+    "Aegis-774": { "company": "God-mode emergency override protocol. Authorized Personnel: <span class='hidden-clue' onclick=\"extractToNotebook('Aris Shaw')\">Aris Shaw</span>." },
+    "Aris Shaw": { "company": "Holds a concealed offshore Swiss bank account: <span class='hidden-clue' onclick=\"extractToNotebook('SW-8849-0021')\">SW-8849-0021</span>. Ready to flee the country at a moment's notice." },
+    "Omega Pharm": { "darkweb": "Corporate espionage division public contact: omega_contact@omega.net. Specializes in acquiring competitors' dirty laundry." },
+    
+    "Spinal Muscular Atrophy": { "company": "Outpatient Record: Patient Lin Xiaoya (Age 2), diagnosed with SMA Type I. Family has signed the Critical Condition Notice." },
+    "Pink Rose Club": { "darkweb": "A massive illegal human trafficking and auction network. Admin contact: admin@pinkrose.onion." },
+    "Lin Luo": { "company": "True Identity: Male, 20 years old, university student. Sole family member suffers from a rare disease. Bank card ending in: <span class='hidden-clue' onclick=\"extractToNotebook('6222-0991-8832')\">6222-0991-8832</span>." },
+    "6222-0991-8832": { "company": "Account Balance: $14.25. Vulnerable to hacker siphon, or available for direct anonymous deposit." },
+    
+    "Magnate_Bai": { "company": "Wang Bai, owner of Great White Coal Trading. Short-tempered, hates being deceived. Email: wangdabai_boss@coal.com. Primary fund card: <span class='hidden-clue' onclick=\"extractToNotebook('CMB-9921-0012')\">CMB-9921-0012</span>." },
+    "138-4432-9901": { "company": "This number is tied to all verified accounts of top-tier influencer <span class='hidden-clue' onclick=\"extractToNotebook('Vitas-Wei')\">Vitas-Wei</span> (10+ million followers)." },
+    "Wei Zhang": { "company": "Wei Zhang is the real name of the top streamer Vitas-Wei. The private alt account Wei_Private belongs to the same individual." },
+    "Vitas-Wei": { "company": "Affiliated MCN Agency: Star Entertainment. Legal department whistleblower email: report@star-mcn.com." },
+    "Termination Letter": { "company": "Star Entertainment Top Secret Red Header Document: Due to severe violations of public morality by artist Wei Zhang (Vitas-Wei), the agency is unilaterally terminating the contract without liability and demanding $5 million in breach-of-contract damages." }
+  },
+  "messages": {
+    "aris.m@cyberdyne.corp": {
+      "phase_01_probe": {
+        "Aerozine": {
+          "player_sends": "Director Aris, with the Aerozine data looking so perfect, how do you sleep at night?",
+          "npc_replies": "Our data has passed strict FDA approval. Send another harassing email and my legal team will find you.",
+          "repeat_reply": "Is the name of the drug all you know? Boring medical troll. Blocked.",
+          "next_phase": "phase_01_probe",
+          "reward": 0
+        },
+        "R-0913": {
+          "player_sends": "Let's cut to the chase. I have the unredacted R-0913 file. Those dozen patients who died of rhabdomyolysis send their regards.",
+          "npc_replies": "(User is typing...) What the hell are you talking about?! How do you know that codename... Who are you? What do you want?",
+          "repeat_reply": "Stop sending that codename! I saw it! What do you want from me?!",
+          "next_phase": "phase_02_panic",
+          "reward": 0
+        }
+      },
+      "phase_02_panic": {
+        "SW-8849-0021": {
+          "player_sends": "I know about the $5 million laundered in your SW-8849-0021 account. Wire me $100,000 for my silence, or the money and the files go public.",
+          "npc_replies": "You ruthless... The money is sent. If you back out, I'll hire dark web hitmen to hunt you down!",
+          "repeat_reply": "I already gave you the money! Why are you still sending the account number?! You liar!",
+          "next_phase": "END_EXTORTION_SUCCESS",
+          "reward": 100000
+        },
+        "Omega Pharm": {
+          "player_sends": "Since you don't want to talk, I'll just send the file hashes to Omega Pharm. Bye.",
+          "npc_replies": "Don't! Please don't send it! Name your price! Hello? Are you there?",
+          "repeat_reply": "Did you send it?! Say something!",
+          "next_phase": "phase_02_panic",
+          "reward": 0
+        }
+      }
+    },
+
+    "omega_contact@omega.net": {
+      "phase_01_trade": {
+        "R-0913": {
+          "player_sends": "I have the complete, fatal R-0913 data on Cyberdyne. Is your bounty still active?",
+          "npc_replies": "Data hash verified. Beautiful work, friend. $500,000 in untraceable funds has been wired to your offshore account. Pleasure doing business.",
+          "repeat_reply": "The money has been paid, we expect exclusivity. If you sell to a third party, we will hunt you down.",
+          "next_phase": "END_BLACKMARKET_TRADE",
+          "reward": 500000
+        }
+      }
+    },
+
+    "Lin Luo": {
+      "phase_01_contact": {
+        "Spinal Muscular Atrophy": {
+          "player_sends": "Lin Luo, I know about your sister's condition. I also know what you're planning to do next. Don't do anything stupid.",
+          "npc_replies": "Who are you? How do you know my real name? Can you lend me money? If not, then screw off, don't come here acting self-righteous.",
+          "repeat_reply": "You already said that! It's easy for you to judge. Can you give me the money or not?!",
+          "next_phase": "phase_02_choice",
+          "reward": 0
+        },
+        "Pink Rose Club": {
+          "player_sends": "Getting on the Rose Club yacht is a one-way trip. Are you sure about this?",
+          "npc_replies": "I have no way out... I have nothing left to sell but this body.",
+          "repeat_reply": "Stop mentioning that name, I'm terrified... but I have to go.",
+          "next_phase": "phase_02_choice",
+          "reward": 0
+        }
+      },
+      "phase_02_choice": {
+        "6222-0991-8832": {
+          "player_sends": "Check your bank card ending in 6222-0991-8832. I wired you some funds. Take your sister for her treatment, and stay off the dark web.",
+          "npc_replies": "What... where did these millions come from?! Oh my god! Thank you! Thank you! Benefactor, I'm canceling the auction right now!",
+          "repeat_reply": "Benefactor! I've already admitted my sister to the hospital! I will never forget your kindness!",
+          "next_phase": "END_SALVATION",
+          "reward": -5000000 
+        }
+      }
+    },
+
+    "report@star-mcn.com": {
+      "phase_01_report": {
+        "Wei_Private": {
+          "player_sends": "You might want to investigate the private alt account 'Wei_Private' belonging to your top streamer. It's full of chat logs insulting her sponsors and fans.",
+          "npc_replies": "Star Entertainment Legal Dept: Thank you for the tip! We have internally verified this disgraceful behavior. We absolutely will not allow someone like this to ruin our corporate reputation. As a reward, here is a preview of the <span class='hidden-clue' onclick=\"extractToNotebook('Termination Letter')\">Termination Letter</span> we just drafted. We are blacklisting him across the entire network immediately!",
+          "repeat_reply": "Hello, we are already pursuing legal action against Wei Zhang. There is no need to submit duplicate reports.",
+          "next_phase": "END_JUSTICE_SERVED",
+          "reward": 10000
+        }
+      }
+    },
+
+    "138-4432-9901": {
+      "phase_01_disguise": {
+        "138-4432-9901": {
+          "player_sends": "Wei Zhang, or should I say, Vitas-Wei. I have your real, registered phone number fully tracked.",
+          "npc_replies": "Crazy stalker fan, right? Harass me again and I'm calling the cops!",
+          "repeat_reply": "Spamming won't work, I've already blocked you, idiot.",
+          "next_phase": "phase_02_extortion",
+          "reward": 0
+        },
+        "Magnate_Bai": {
+          "player_sends": "Do you need me to remind you how you curse out your number one patron 'Magnate_Bai' in private? 'Nouveau riche pig'?",
+          "npc_replies": "(Long silence...) Bro, please! Let's talk this out! How did you get these chat logs? Name your price, how much to buy you off?",
+          "repeat_reply": "I told you I can pay! Stop sending that, my mental state can't take it!",
+          "next_phase": "phase_02_extortion",
+          "reward": 0
+        },
+        "Termination Letter": {
+          "player_sends": "Stop pretending. I have the red-header document from Star Entertainment. You're already terminated. Are you ready to pay the $5 million penalty?",
+          "npc_replies": "It was you?! Upper management called me in this morning and tore me to shreds. So you were the one behind this! You ruined me! I'll kill you!!",
+          "repeat_reply": "You bastard! You dare send that again! Go to hell!",
+          "next_phase": "END_TARGET_BROKEN",
+          "reward": 0
+        }
+      },
+      "phase_02_extortion": {
+        "Wei_Private": {
+          "player_sends": "Since you're so sincere, wire $200,000 from your alt account. Consider it buying peace of mind.",
+          "npc_replies": "It's transferred... Consider me unlucky. Please delete the logs, I need this career to feed my family.",
+          "repeat_reply": "I already sent the money! Are you trying to back out?!",
+          "next_phase": "END_HARVEST",
+          "reward": 200000
+        }
+      }
+    },
+
+    "wangdabai_boss@coal.com": {
+      "phase_01_leak": {
+        "Wei_Private": {
+          "player_sends": "Boss Wang, take a look at the Vitas-Wei you pamper so much. Her alt account 'Wei_Private' calls you a pig every single day.",
+          "npc_replies": "Damn it! I tipped her millions, did she think I was a sucker?! The evidence is rock solid. Thanks for the intel, brother! I'm sending guys to smash her streaming studio tonight! Keep this tip fee!",
+          "repeat_reply": "No need to send it again, bro. My guys are already on the way. That bitch is dead tonight!",
+          "next_phase": "END_PROXY_KILL",
+          "reward": 50000
+        }
+      }
+    }
+  }
+}

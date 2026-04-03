@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OSINT_TERMINAL_DESKTOP</title>
+    <style>
+        body { background-color: #050505; color: #00ff00; font-family: 'Courier New', monospace; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
+        h1 { border-bottom: 2px solid #005500; padding-bottom: 10px; }
+        .desktop-grid { display: flex; gap: 30px; margin-top: 20px; }
+        
+        .app-icon { 
+            width: 150px; height: 150px; border: 2px solid #005500; background-color: #001100; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            cursor: pointer; transition: 0.3s; text-decoration: none; color: #00ff00;
+        }
+        .app-icon:hover { background-color: #00ff00; color: #000; border-color: #00ff00; transform: scale(1.05); }
+        .app-icon text { margin-top: 15px; font-weight: bold; text-align: center;}
+        .icon-symbol { font-size: 40px; }
+        
+        #status-bar { border: 1px solid #ffaa00; background: #221100; padding: 15px; margin-bottom: 20px; color: #ffaa00; display: flex; justify-content: space-between; align-items: center;}
+        .end-shift-btn { background: #550000; color: white; border: 1px solid red; padding: 10px; cursor: pointer; font-weight: bold;}
+        .end-shift-btn:hover { background: red; color: black; }
+        
+        @keyframes glitch { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
+    </style>
+</head>
+<body>
+    <script id="player-data-store" type="application/json">
+        {{ player | tojson | safe }}
+    </script>
+
+    <script>
+        const player_data = JSON.parse(document.getElementById('player-data-store').textContent);
+    </script>
+
+    <h1>>>> SYSTEM_ROOT_DESKTOP</h1>
+    
+    <div id="status-bar">
+        <span>[ CYCLE: DAY <span id="current-day"></span> / 7 ] | ⚠️ QUARTERLY KPI DEFICIT: $5,000</span>
+        <button class="end-shift-btn" onclick="endShift()">[ INITIATE SLEEP MODE / END SHIFT ]</button>
+    </div>
+
+    <p>Welcome back, Operator. Select a module to load:</p>
+
+    <div class="desktop-grid">
+        <a href="/search" class="app-icon">
+            <div class="icon-symbol">👁️‍🗨️</div>
+            <text>OSINT<br>Search Node</text>
+        </a>
+
+        <a href="/bank" class="app-icon">
+            <div class="icon-symbol">🏦</div>
+            <text>Offshore<br>Routing</text>
+        </a>
+        <a href="/message" class="app-icon">
+            <div class="icon-symbol">💬</div>
+            <text>Encrypted<br>Messenger</text>
+        </a>
+    </div>
+
+    <script>
+        document.getElementById('current-day').innerText = player_data.current_day;
+
+        // Day 6/7 Glitch effects
+        if (player_data.current_day >= 6) {
+            document.body.style.animation = "glitch 0.5s infinite";
+            document.getElementById('status-bar').style.backgroundColor = "red";
+            document.getElementById('status-bar').style.color = "white";
+            document.getElementById('status-bar').innerHTML = "<b>[CRITICAL WARNING] ADMIN PRIVILEGES REVOKED. OMNI_CORE OVERRIDE.</b>";
+        }
+
+        async function endShift() {
+            if(confirm("Warning: Ending your shift will advance the cycle. Are you sure?")) {
+                const res = await fetch('/api/advance_day', { method: 'POST' });
+                const data = await res.json();
+                alert(data.msg);
+                window.location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

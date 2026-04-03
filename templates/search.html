@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OSINT_TERMINAL_v6.0</title>
+    <style>
+        body { background-color: #0a0a0a; color: #00ff00; font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #top-bar { background-color: #002200; border-bottom: 2px solid #005500; padding: 10px 20px; font-weight: bold; }
+        .clipboard-item { cursor: pointer; text-decoration: underline; margin-bottom: 5px; }
+        .clipboard-item:hover { color: #fff; background-color: #003300; }
+
+        #main-content { display: flex; flex: 1; overflow: hidden; }
+        .panel { padding: 20px; box-sizing: border-box; }
+        #left-panel { flex: 2; border-right: 2px solid #005500; overflow-y: auto; display: flex; flex-direction: column;}
+        #right-panel { flex: 1; display: flex; flex-direction: column; gap: 15px; background-color: #050505; height: 100%; overflow: hidden;}
+        
+        .case-folder { border: 1px solid #005500; background: #001100; padding: 15px; margin-bottom: 15px; cursor: pointer; transition: 0.2s; border-left: 5px solid #00ff00;}
+        .case-folder:hover { background: #003300; transform: translateX(5px);}
+        .case-title { font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 5px;}
+        .case-desc { font-size: 12px; color: #888; }
+        
+        .hidden { display: none !important; }
+
+        .msg-block { border-left: 3px solid #005500; padding-left: 10px; margin-bottom: 15px; font-size: 14px; color: #ccc;}
+        .timestamp { color: #888; font-size: 12px; }
+        .hidden-clue { cursor: pointer; transition: 0.2s; border-bottom: 1px dotted #00ff00; }
+        .hidden-clue:hover { background-color: #003300; color: #00ff00; }
+
+        #notebook { flex: 0 0 150px; border: 1px dashed #555; padding: 10px; overflow-y: auto; color: #ffaa00; font-size: 13px; }
+        #notebook ul { padding-left: 20px; margin: 0; }
+        #search-terminal { flex: 1; border: 1px solid #00ff00; padding: 15px; background: #001100; display: flex; flex-direction: column; overflow: hidden;}
+        .input-group { display: flex; gap: 10px; margin-bottom: 10px; flex-shrink: 0;}
+        select, input, button { background: #000; color: #00ff00; border: 1px solid #00ff00; padding: 8px; font-family: inherit; font-size: 14px; }
+        input { flex-grow: 1; }
+        input:focus { outline: none; background: #002200; }
+        button { cursor: pointer; background: #003300; font-weight: bold; }
+        button:hover { background: #00ff00; color: #000; }
+        #terminal-output { flex: 1; background: #000; border: 1px dashed #005500; padding: 10px; overflow-y: auto; font-size: 13px; line-height: 1.5; color: #00cccc; }
+    </style>
+</head>
+<body>
+    <script id="player-data-store" type="application/json">
+        {{ player | tojson | safe }}
+    </script>
+
+    <script>
+        const player_data = JSON.parse(document.getElementById('player-data-store').textContent);
+    </script>
+
+    <div id="top-bar">>>> OSINT_TERMINAL_v6.0 | SURVEILLANCE OVERWATCH</div>
+    <button onclick="window.location.href='/'" style="float:right; margin:-30px 20px 0 0;">Exit to Desktop</button>
+
+    <div id="main-content">
+        <div id="left-panel" class="panel">
+            <div id="view-case-list">
+                <h2 style="margin-top:0;">>>> INTERCEPTED_ARCHIVES</h2>
+                <p style="color: #555; font-size: 12px;">Awaiting target selection...</p>
+                <div id="folder-container">
+                    <p style="color:yellow;">Connecting to backbone, fetching logs...</p>
+                </div>
+            </div>
+
+            <div id="view-case-detail" class="hidden">
+                <button onclick="backToCaseList()" style="margin-bottom: 15px;">[<] Back to Archives</button>
+                <h2 id="detail-title" style="margin-top:0; color:#fff;">>>> RAW_DATA_STREAM</h2>
+                <div id="feed-container"></div>
+            </div>
+        </div>
+
+        <div id="right-panel" class="panel">
+            <div id="notebook">
+                <span style="color:#888;">[ MEMORY BUFFER / CLUES ]</span>
+                <ul id="clue-list"></ul>
+            </div>
+
+            <div id="search-terminal">
+                <h3 style="margin: 0 0 15px 0; color: #fff;">>>> QUERY_CONSOLE</h3>
+                <div class="input-group">
+                    <select id="db-selector">
+                        <option value="surface">Surface Web (Public)</option>
+                        <option value="company">Corporate DB (Requires ID)</option>
+                        <option value="darkweb">Darknet Nodes (Encrypted)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="search-input" placeholder="Enter query string...">
+                    <button onclick="executeSearch()">SUBMIT [ENTER]</button>
+                </div>
+                <div id="terminal-output">
+                    [SYSTEM] Console ready. Remote uplink established...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allCasesData = []; 
+
+        window.onload = async function() {
+            loadClipboard(); 
+            try {
+                const response = await fetch('/api/cases');
+                allCasesData = await response.json();
+                renderCaseList();
+            } catch (error) {
+                document.getElementById('folder-container').innerHTML = "<p style='color:red;'>Failed to connect to database server.</p>";
+            }
+        };
+
+        function renderCaseList() {
+            const container = document.getElementById('folder-container');
+            container.innerHTML = ""; 
+            
+            if(allCasesData.length === 0) {
+                container.innerHTML = "<p style='color:#888;'>No data packets intercepted for current cycle.</p>";
+            }
+
+            allCasesData.forEach((caseItem, index) => {
+                const folderHtml = `
+                    <div class="case-folder" onclick="openCase(${index})">
+                        <div class="case-title">📁 ${caseItem.title}</div>
+                        <div class="case-desc">${caseItem.desc}</div>
+                    </div>
+                `;
+                container.innerHTML += folderHtml;
+            });
+        }
+
+        function openCase(index) {
+            const caseItem = allCasesData[index];
+            document.getElementById('view-case-list').classList.add('hidden');
+            document.getElementById('view-case-detail').classList.remove('hidden');
+            document.getElementById('detail-title').innerText = `>>> STREAM: ${caseItem.title}`;
+            
+            const container = document.getElementById('feed-container');
+            container.innerHTML = ""; 
+            
+            caseItem.feed.forEach(item => {
+                const msgHtml = `
+                    <div class="msg-block">
+                        <span class="timestamp">${item.time} | SRC: ${item.source} | TGT: ${item.target}</span><br>
+                        ${item.text}
+                    </div>
+                `;
+                container.innerHTML += msgHtml;
+            });
+        }
+
+        function backToCaseList() {
+            document.getElementById('view-case-detail').classList.add('hidden');
+            document.getElementById('view-case-list').classList.remove('hidden');
+        }
+
+        function loadClipboard() {
+            const list = document.getElementById("clue-list");
+            list.innerHTML = "";
+            let clues = JSON.parse(localStorage.getItem('osint_clues')) || [];
+            clues.forEach(text => {
+                list.innerHTML += `<li class="clipboard-item" onclick="pasteToInput('${text}')">${text}</li>`;
+            });
+        }
+
+        function extractToNotebook(text) {
+            let clues = JSON.parse(localStorage.getItem('osint_clues')) || [];
+            if (!clues.includes(text)) {
+                clues.push(text);
+                localStorage.setItem('osint_clues', JSON.stringify(clues)); 
+                loadClipboard(); 
+                printToTerminal(`[SYS_MSG] Extracted string: "${text}"`, "#888");
+            }
+        }
+
+        function pasteToInput(text) {
+            const input = document.getElementById("search-input");
+            input.value = text;
+            input.focus();
+            printToTerminal(`[MACRO] String "${text}" pasted to console.`, "#aaaaaa");
+        }
+
+        function printToTerminal(text, color="#00cccc") {
+            const output = document.getElementById("terminal-output");
+            output.innerHTML += `<br><br><span style="color:${color}">> ${text}</span>`;
+            output.scrollTop = output.scrollHeight; 
+        }
+
+        async function executeSearch() {
+            const dbType = document.getElementById("db-selector").value;
+            const keyword = document.getElementById("search-input").value.trim();
+            
+            if (!keyword) {
+                printToTerminal("[ERROR] Query cannot be null!", "#ff5555");
+                return;
+            }
+
+            printToTerminal(`Executing lookup for "${keyword}" ...`, "#aaaaaa");
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword: keyword, db_type: dbType })
+                });
+                const data = await response.json();
+
+                setTimeout(() => {
+                    if (data.status === "success") {
+                        printToTerminal(data.result, "#00ff00");
+                    } else {
+                        printToTerminal(data.result, "#ff5555");
+                    }
+                }, 800);
+            } catch (error) {
+                printToTerminal("[CRITICAL ERROR] Uplink severed!", "red");
+            }
+        }
+
+        document.getElementById("search-input").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                executeSearch();
+            }
+        });
+    </script>
+</body>
+</html>
