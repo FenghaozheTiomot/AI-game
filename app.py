@@ -141,5 +141,5 @@ def advance_day():
     return jsonify({"status": "error", "msg": "Deadline reached. No tomorrow."})
 
 if __name__ == '__main__':
-    webview.create_window('OSINT TERMINAL - V1.0', app, width=1200, height=800)
-    webview.start()
+    # Use app.run() for web hosting instead of webview
+    app.run(host='0.0.0.0', port=5000)
