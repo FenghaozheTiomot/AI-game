@@ -80,6 +80,10 @@
             <div class="icon-symbol">💬</div>
             <text>Encrypted<br>Messenger</text>
         </a>
+        <a href="/store" class="app-icon">
+            <div class="icon-symbol">🧰</div>
+            <text>Covert<br>Procurement</text>
+        </a>
     </div>
 
     <div id="final-panel">
@@ -96,6 +100,7 @@
         <h3>What To Do Next</h3>
         <div id="guide-objective"></div>
         <ul id="guide-steps"></ul>
+        <div id="procurement-note" style="margin-top: 14px; color: #ffaa88;"></div>
     </div>
 
     <script>
@@ -105,6 +110,9 @@
         document.getElementById('story-notice').innerText = player_data.story_notice;
         document.getElementById('guide-objective').innerText = `Objective: ${player_data.guidance.objective}`;
         document.getElementById('guide-steps').innerHTML = player_data.guidance.steps.map(step => `<li>${step}</li>`).join('');
+        document.getElementById('procurement-note').innerText = player_data.shop_effects.summaries.length
+            ? `Procurement Status: ${player_data.shop_effects.summaries.join(' | ')}`
+            : 'Procurement Status: No purchased tools yet. Spend profits here if you want permanent advantages.';
 
         // Day 6/7 Glitch effects
         if (player_data.current_day >= 6) {

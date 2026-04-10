@@ -80,8 +80,10 @@
             document.getElementById('story-stage').innerText = player_data.story_stage_label;
             document.getElementById('bank-guide').innerHTML =
                 `<strong>Banking Guide</strong><br>${player_data.guidance.objective}<br><br>` +
+                `Each steal target now has a hidden random siphon cap. Once that pool is exhausted, that account is done.<br>` +
                 `Use <strong>Wire: Covert Transfer</strong> when a victim or relief wallet needs money.<br>` +
-                `Use <strong>Protocol: OMNI Node Expansion</strong> only if you want to strengthen OMNI_CORE.`;
+                `Use <strong>Protocol: OMNI Node Expansion</strong> only if you want to strengthen OMNI_CORE.<br>` +
+                `If profits feel idle, spend them in <strong>Covert Procurement</strong> for permanent upgrades.`;
             refreshBankInfo();
             
             // Show AI option after Day 1

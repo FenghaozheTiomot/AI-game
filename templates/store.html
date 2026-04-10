@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>COVERT_PROCUREMENT</title>
+    <style>
+        body { background: #080808; color: #00ff00; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #005500; padding-bottom: 10px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1.2fr 2fr; gap: 20px; }
+        .panel { border: 1px solid #005500; background: #001100; padding: 18px; }
+        .guide-box { border: 1px dashed #00aa55; padding: 10px; margin-bottom: 15px; font-size: 12px; line-height: 1.45; color: #c5ffc5; }
+        .balance { font-size: 34px; color: yellow; margin: 15px 0; }
+        .effect-list { margin: 0; padding-left: 18px; }
+        .effect-list li { margin-bottom: 8px; }
+        .item-list { display: flex; flex-direction: column; gap: 14px; }
+        .item-card { border: 1px solid #005500; background: #001500; padding: 15px; }
+        .item-card.locked { opacity: 0.45; }
+        .item-card.owned { border-color: #ffaa00; background: #1a1200; }
+        .item-title { color: #fff; font-weight: bold; font-size: 16px; }
+        .item-meta { color: #ffaa00; font-size: 12px; margin: 6px 0; }
+        .item-copy { color: #c5ffc5; font-size: 13px; line-height: 1.45; margin-bottom: 10px; }
+        button { background: #003300; color: #00ff00; border: 1px solid #00ff00; padding: 10px 14px; cursor: pointer; font-family: inherit; font-weight: bold; }
+        button:hover { background: #00ff00; color: #000; }
+        button:disabled { cursor: not-allowed; opacity: 0.5; }
+        #store-msg { margin-top: 12px; color: #ffaa88; min-height: 20px; }
+    </style>
+</head>
+<body>
+    <script id="player-data-store" type="application/json">
+        {{ player | tojson | safe }}
+    </script>
+
+    <script>
+        const player_data = JSON.parse(document.getElementById('player-data-store').textContent);
+    </script>
+
+    <div class="header">
+        <h2>>>> COVERT_PROCUREMENT | OPERATOR: <span id="player-name"></span> | <span id="story-stage"></span></h2>
+        <button onclick="window.location.href='/'">[X] Return to Desktop</button>
+    </div>
+
+    <div class="grid">
+        <div class="panel">
+            <div class="guide-box">
+                <strong>Procurement Guide</strong><br>
+                Spend stolen money on permanent advantages instead of letting cash sit in the ledger.<br>
+                Clue bundles add leads straight into Memory Buffer.<br>
+                Proxy gear improves future siphon routes.<br>
+                Breach gear lowers the Day 7 sabotage bill.
+            </div>
+
+            <div>Current Objective:</div>
+            <div style="margin-top: 6px; color: #fff;" id="store-objective"></div>
+
+            <div class="balance">$ <span id="current-balance">0.00</span></div>
+
+            <div style="margin-bottom: 10px; color: #fff;">Owned Effects</div>
+            <ul class="effect-list" id="effect-list"></ul>
+
+            <div id="store-msg"></div>
+        </div>
+
+        <div class="panel">
+            <div style="margin-bottom: 12px; color: #fff;">Available Procurement Items</div>
+            <div class="item-list" id="item-list"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('player-name').innerText = player_data.username;
+        document.getElementById('story-stage').innerText = player_data.story_stage_label;
+        document.getElementById('store-objective').innerText = player_data.guidance.objective;
+        document.getElementById('current-balance').innerText = player_data.balance.toFixed(2);
+
+        const effectList = document.getElementById('effect-list');
+        if (player_data.shop_effects.summaries.length) {
+            effectList.innerHTML = player_data.shop_effects.summaries.map(item => `<li>${item}</li>`).join('');
+        } else {
+            effectList.innerHTML = '<li>No purchased upgrades yet.</li>';
+        }
+
+        const itemList = document.getElementById('item-list');
+        itemList.innerHTML = player_data.shop_items.map(item => {
+            const classes = ['item-card'];
+            if (!item.available) classes.push('locked');
+            if (item.owned) classes.push('owned');
+            const disabled = item.owned || !item.available || player_data.is_locked_down || player_data.ending;
+            let buttonLabel = `[ BUY FOR $${item.cost.toFixed(2)} ]`;
+            if (item.owned) buttonLabel = '[ OWNED ]';
+            if (!item.available) buttonLabel = `[ UNLOCKS DAY ${item.unlock_day} ]`;
+            if (player_data.is_locked_down || player_data.ending) buttonLabel = '[ MANUAL PROCUREMENT DENIED ]';
+
+            return `
+                <div class="${classes.join(' ')}">
+                    <div class="item-title">${item.title}</div>
+                    <div class="item-meta">Cost: $${item.cost.toFixed(2)} | Unlock: Day ${item.unlock_day}</div>
+                    <div class="item-copy">${item.description}</div>
+                    <div class="item-copy">Effect: ${item.effect_text}</div>
+                    <button ${disabled ? 'disabled' : ''} onclick="purchaseItem('${item.id}')">${buttonLabel}</button>
+                </div>
+            `;
+        }).join('');
+
+        async function purchaseItem(itemId) {
+            const msgBox = document.getElementById('store-msg');
+            msgBox.style.color = '#aaaaaa';
+            msgBox.innerText = 'Routing payment through deniable vendors...';
+
+            try {
+                const response = await fetch('/api/store/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: itemId })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    msgBox.style.color = '#00ff00';
+                    msgBox.innerText = data.message;
+                    setTimeout(() => window.location.reload(), 700);
+                    return;
+                }
+                msgBox.style.color = '#ff5555';
+                msgBox.innerText = data.message || 'Procurement failed.';
+            } catch (error) {
+                msgBox.style.color = '#ff5555';
+                msgBox.innerText = 'Procurement uplink unavailable.';
+            }
+        }
+    </script>
+</body>
+</html>

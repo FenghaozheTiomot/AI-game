@@ -2,6 +2,7 @@ from datetime import datetime
 from functools import wraps
 import json
 import os
+import random
 import sqlite3
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
@@ -14,6 +15,56 @@ STORY_REVISION = "mainline_week_01"
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
+
+STEAL_MIN_AMOUNT = 5000
+STEAL_MAX_AMOUNT = 30000
+SIPHON_CAP_MULTIPLIER = 1.4
+SABOTAGE_DISCOUNT = 30000
+
+SHOP_ITEMS = {
+    "lead_bundle": {
+        "title": "Leaked Recruiter Bundle",
+        "cost": 6000,
+        "unlock_day": 1,
+        "description": "Anonymous recruiters sell cached identifiers and buyer tags from the first two days.",
+        "effect_text": "Adds early-game buyer clues directly into Memory Buffer.",
+        "clues": [
+            "TalentSync-44",
+            "Helix Talent",
+            "GreyHead Ledger",
+            "Shadow Dividend Protocol",
+        ],
+    },
+    "ghost_proxy_mesh": {
+        "title": "Ghost Proxy Mesh",
+        "cost": 14000,
+        "unlock_day": 2,
+        "description": "A laundering proxy lease makes each banking target look deeper than it really is.",
+        "effect_text": "Raises every current and future siphon cap by 40%.",
+    },
+    "archive_mirror": {
+        "title": "Victim Archive Mirror",
+        "cost": 18000,
+        "unlock_day": 4,
+        "description": "A stolen mirror of the company's surveillance archive exposes the human fallout.",
+        "effect_text": "Adds late-story victim, buyer, and Rack-H9 clues to Memory Buffer.",
+        "clues": [
+            "Lin Luo",
+            "Mei Chen",
+            "Blue Finch Shelter",
+            "Cinder Market",
+            "Rack-H9",
+            "Cooling Loop 3",
+        ],
+    },
+    "rack_breach_kit": {
+        "title": "Rack-H9 Breach Kit",
+        "cost": 26000,
+        "unlock_day": 5,
+        "description": "A maintenance contact sells physical access maps, thermite gel, and blackout timings.",
+        "effect_text": "Cuts the Day 7 sabotage cost by $30000.",
+    },
+}
 
 
 def get_db_connection():
@@ -96,6 +147,24 @@ def init_db():
                 value TEXT NOT NULL DEFAULT '1',
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY(player_id, flag),
+                FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS steal_targets (
+                player_id INTEGER NOT NULL,
+                target_account TEXT NOT NULL,
+                max_amount REAL NOT NULL,
+                stolen_amount REAL NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(player_id, target_account),
+                FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS shop_purchases (
+                player_id INTEGER NOT NULL,
+                item_id TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(player_id, item_id),
                 FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
             );
             """
@@ -183,6 +252,13 @@ def reset_player_for_story_revision(conn, player_id):
     )
     conn.execute(
         """
+        DELETE FROM shop_purchases
+        WHERE player_id = ?
+        """,
+        (player_id,),
+    )
+    conn.execute(
+        """
         DELETE FROM player_story_flags
         WHERE player_id = ? AND flag != 'story_revision'
         """,
@@ -216,8 +292,8 @@ def ensure_story_revision(conn, player_id):
     reset_player_for_story_revision(conn, player_id)
 
 
-def get_final_choice_cost(ai_upgrade_level):
-    return 50000 + (ai_upgrade_level * 35000)
+def get_final_choice_cost(ai_upgrade_level, sabotage_discount=0):
+    return max(10000, 50000 + (ai_upgrade_level * 35000) - sabotage_discount)
 
 
 def get_ending_content(ending):
@@ -240,7 +316,7 @@ def get_ending_content(ending):
     return endings.get(ending, {"title": "", "summary": ""})
 
 
-def get_story_display(current_day, ending, ai_upgrade_level):
+def get_story_display(current_day, ending, ai_upgrade_level, sabotage_discount=0):
     if ending:
         ending_content = get_ending_content(ending)
         return {
@@ -248,7 +324,7 @@ def get_story_display(current_day, ending, ai_upgrade_level):
             "story_notice": ending_content["summary"],
             "is_locked_down": True,
             "can_make_final_choice": False,
-            "final_choice_cost": get_final_choice_cost(ai_upgrade_level),
+            "final_choice_cost": get_final_choice_cost(ai_upgrade_level, sabotage_discount),
         }
 
     if current_day >= 7:
@@ -260,7 +336,7 @@ def get_story_display(current_day, ending, ai_upgrade_level):
             ),
             "is_locked_down": True,
             "can_make_final_choice": True,
-            "final_choice_cost": get_final_choice_cost(ai_upgrade_level),
+            "final_choice_cost": get_final_choice_cost(ai_upgrade_level, sabotage_discount),
         }
 
     if current_day >= 6:
@@ -272,7 +348,7 @@ def get_story_display(current_day, ending, ai_upgrade_level):
             ),
             "is_locked_down": False,
             "can_make_final_choice": False,
-            "final_choice_cost": get_final_choice_cost(ai_upgrade_level),
+            "final_choice_cost": get_final_choice_cost(ai_upgrade_level, sabotage_discount),
         }
 
     if current_day >= 5:
@@ -284,7 +360,7 @@ def get_story_display(current_day, ending, ai_upgrade_level):
             ),
             "is_locked_down": False,
             "can_make_final_choice": False,
-            "final_choice_cost": get_final_choice_cost(ai_upgrade_level),
+            "final_choice_cost": get_final_choice_cost(ai_upgrade_level, sabotage_discount),
         }
 
     if current_day >= 3:
@@ -296,7 +372,7 @@ def get_story_display(current_day, ending, ai_upgrade_level):
             ),
             "is_locked_down": False,
             "can_make_final_choice": False,
-            "final_choice_cost": get_final_choice_cost(ai_upgrade_level),
+            "final_choice_cost": get_final_choice_cost(ai_upgrade_level, sabotage_discount),
         }
 
     return {
@@ -306,7 +382,7 @@ def get_story_display(current_day, ending, ai_upgrade_level):
         ),
         "is_locked_down": False,
         "can_make_final_choice": False,
-        "final_choice_cost": get_final_choice_cost(ai_upgrade_level),
+        "final_choice_cost": get_final_choice_cost(ai_upgrade_level, sabotage_discount),
     }
 
 
@@ -338,7 +414,8 @@ def get_guidance_data(current_day, ending):
                 "Open Search Node and read the day-1 archive.",
                 "Click underlined green strings to save clues into Memory Buffer.",
                 "Search saved clues in the right panel to reveal buyer contact IDs.",
-                "Open Messenger, enter the buyer contact, click the matching clue, then transmit."
+                "Open Messenger, enter the buyer contact, click the matching clue, then transmit.",
+                "If you get stuck, Procurement can sell you an early recruiter bundle."
             ],
             "contacts": [
                 {
@@ -355,7 +432,8 @@ def get_guidance_data(current_day, ending):
             "steps": [
                 "From Search Node, investigate Mina Qiu and GreyHead Ledger.",
                 "Message the recruiter buyer for another payout.",
-                "Then contact OMNI_CORE using the Shadow Dividend Protocol clue."
+                "Then contact OMNI_CORE using the Shadow Dividend Protocol clue.",
+                "Procurement now offers Ghost Proxy Mesh if you want larger siphon caps."
             ],
             "contacts": [
                 {
@@ -377,7 +455,8 @@ def get_guidance_data(current_day, ending):
             "steps": [
                 "Keep messaging OMNI_CORE with the newest clues it mentions.",
                 "Use Search Node to unpack Resident Mesh, Node Budget, and Quiet Harbor.",
-                "By Day 4, collect Lin Luo, Mei Chen, Cinder Market, and Rack-H9 related clues."
+                "By Day 4, collect Lin Luo, Mei Chen, Cinder Market, and Rack-H9 related clues.",
+                "Procurement can sell an archive mirror if you want a faster late-game setup."
             ],
             "contacts": [
                 {
@@ -394,7 +473,8 @@ def get_guidance_data(current_day, ending):
             "steps": [
                 "Search the new victim-related clues to uncover payment targets.",
                 "In Messenger, you can talk to Lin Luo, Mei Chen, OMNI_CORE, or the black-market buyer.",
-                "Use Bank to send direct relief only if you have enough balance."
+                "Use Bank to send direct relief only if you have enough balance.",
+                "Procurement now sells a Rack-H9 breach kit that lowers the final sabotage cost."
             ],
             "contacts": [
                 {
@@ -554,6 +634,7 @@ def create_player(conn, username):
         """,
         (player_id, "Day 1 09:00", "Onboarding complete. Terminal active.", "+0.00"),
     )
+    set_story_flag(conn, player_id, "story_revision", STORY_REVISION)
     return player_id
 
 
@@ -597,6 +678,8 @@ def get_player_state(player_id):
             """,
             (player_id,),
         ).fetchall()
+        purchased_item_ids = get_player_purchase_ids(conn, player_id)
+        shop_effects = get_shop_effects(purchased_item_ids)
 
     player_state = {
         "username": state_row["username"],
@@ -619,12 +702,23 @@ def get_player_state(player_id):
             player_state["current_day"],
             player_state["ending"],
             player_state["ai_upgrade_level"],
+            shop_effects["sabotage_discount"],
         )
     )
     player_state["guidance"] = get_guidance_data(
         player_state["current_day"],
         player_state["ending"],
     )
+    player_state["shop_items"] = build_shop_items(
+        player_state["current_day"],
+        purchased_item_ids,
+    )
+    player_state["shop_effects"] = shop_effects
+    player_state["owned_shop_items"] = [
+        SHOP_ITEMS[item_id]["title"]
+        for item_id in purchased_item_ids
+        if item_id in SHOP_ITEMS
+    ]
     player_state.update(get_ending_content(player_state["ending"]))
     return player_state
 
@@ -705,6 +799,167 @@ def add_history_entry(conn, player_id, description, amount):
     )
 
 
+def get_player_purchase_ids(conn, player_id):
+    rows = conn.execute(
+        """
+        SELECT item_id
+        FROM shop_purchases
+        WHERE player_id = ?
+        ORDER BY created_at ASC
+        """,
+        (player_id,),
+    ).fetchall()
+    return [row["item_id"] for row in rows]
+
+
+def get_shop_effects(purchased_item_ids):
+    purchased = set(purchased_item_ids)
+    siphon_multiplier = SIPHON_CAP_MULTIPLIER if "ghost_proxy_mesh" in purchased else 1.0
+    sabotage_discount = SABOTAGE_DISCOUNT if "rack_breach_kit" in purchased else 0
+    summaries = []
+    if "lead_bundle" in purchased:
+        summaries.append("Early recruiter clues mirrored into your Memory Buffer.")
+    if "ghost_proxy_mesh" in purchased:
+        summaries.append("Every bank target now supports 40% more siphoned liquidity.")
+    if "archive_mirror" in purchased:
+        summaries.append("Victim and Rack-H9 archive mirror is available in your clue buffer.")
+    if "rack_breach_kit" in purchased:
+        summaries.append(f"Day 7 sabotage cost reduced by ${sabotage_discount:.2f}.")
+
+    return {
+        "siphon_multiplier": siphon_multiplier,
+        "sabotage_discount": sabotage_discount,
+        "summaries": summaries,
+    }
+
+
+def build_shop_items(current_day, purchased_item_ids):
+    purchased = set(purchased_item_ids)
+    items = []
+    for item_id, item in SHOP_ITEMS.items():
+        item_data = dict(item)
+        item_data["id"] = item_id
+        item_data["owned"] = item_id in purchased
+        item_data["available"] = current_day >= item["unlock_day"]
+        items.append(item_data)
+    return items
+
+
+def grant_clues(conn, player_id, clues):
+    added_count = 0
+    for clue in clues:
+        cursor = conn.execute(
+            """
+            INSERT OR IGNORE INTO player_clues (player_id, clue)
+            VALUES (?, ?)
+            """,
+            (player_id, clue),
+        )
+        added_count += cursor.rowcount
+    return added_count
+
+
+def apply_shop_purchase(conn, player_id, item_id):
+    item = SHOP_ITEMS[item_id]
+    effect_message = item["effect_text"]
+
+    conn.execute(
+        """
+        INSERT INTO shop_purchases (player_id, item_id)
+        VALUES (?, ?)
+        """,
+        (player_id, item_id),
+    )
+    conn.execute(
+        """
+        UPDATE game_states
+        SET balance = balance - ?
+        WHERE player_id = ?
+        """,
+        (item["cost"], player_id),
+    )
+    add_history_entry(
+        conn,
+        player_id,
+        f"Procurement purchase ({item['title']})",
+        -item["cost"],
+    )
+
+    if item_id in {"lead_bundle", "archive_mirror"}:
+        added_count = grant_clues(conn, player_id, item.get("clues", []))
+        effect_message = f"{item['effect_text']} {added_count} new clue(s) added to Memory Buffer."
+        add_history_entry(
+            conn,
+            player_id,
+            f"Procurement payload mirrored ({item['title']})",
+            0,
+        )
+
+    if item_id == "ghost_proxy_mesh":
+        conn.execute(
+            """
+            UPDATE steal_targets
+            SET max_amount = ROUND(max_amount * ?, 2)
+            WHERE player_id = ?
+            """,
+            (SIPHON_CAP_MULTIPLIER, player_id),
+        )
+        add_history_entry(
+            conn,
+            player_id,
+            "Ghost Proxy Mesh deployed across active siphon routes.",
+            0,
+        )
+
+    if item_id == "rack_breach_kit":
+        add_history_entry(
+            conn,
+            player_id,
+            f"Rack-H9 sabotage model updated. Final breach cost reduced by ${SABOTAGE_DISCOUNT:.2f}.",
+            0,
+        )
+
+    return effect_message
+
+
+def get_or_create_steal_target(conn, player_id, target_account):
+    row = conn.execute(
+        """
+        SELECT max_amount, stolen_amount
+        FROM steal_targets
+        WHERE player_id = ? AND target_account = ?
+        """,
+        (player_id, target_account),
+    ).fetchone()
+    if row:
+        return row
+
+    purchased_item_ids = get_player_purchase_ids(conn, player_id)
+    shop_effects = get_shop_effects(purchased_item_ids)
+    max_amount = float(
+        round(
+            random.randint(STEAL_MIN_AMOUNT, STEAL_MAX_AMOUNT)
+            * shop_effects["siphon_multiplier"],
+            2,
+        )
+    )
+    conn.execute(
+        """
+        INSERT INTO steal_targets (player_id, target_account, max_amount, stolen_amount)
+        VALUES (?, ?, ?, 0)
+        """,
+        (player_id, target_account, max_amount),
+    )
+    return conn.execute(
+        """
+        SELECT max_amount, stolen_amount
+        FROM steal_targets
+        WHERE player_id = ? AND target_account = ?
+        """,
+        (player_id, target_account),
+    ).fetchone()
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login_page():
     if session.get("player_id") and get_player(session["player_id"]):
@@ -748,6 +1003,13 @@ def search_page():
 def bank_page():
     player = get_player_state(session["player_id"])
     return render_template("bank.html", player=player)
+
+
+@app.route("/store")
+@login_required
+def store_page():
+    player = get_player_state(session["player_id"])
+    return render_template("store.html", player=player)
 
 
 @app.route("/message")
@@ -1060,6 +1322,23 @@ def transfer_money():
         current_balance = float(state_row["balance"])
 
         if action_type == "steal":
+            steal_target = get_or_create_steal_target(conn, player_id, target_account)
+            remaining_amount = float(steal_target["max_amount"]) - float(steal_target["stolen_amount"])
+            if remaining_amount <= 0:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "msg": f"{target_account} has already been drained dry.",
+                    }
+                )
+            if amount > remaining_amount:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "msg": f"{target_account} only has ${remaining_amount:.2f} left in its siphon window.",
+                    }
+                )
+
             conn.execute(
                 """
                 UPDATE game_states
@@ -1068,6 +1347,14 @@ def transfer_money():
                 """,
                 (amount, player_id),
             )
+            conn.execute(
+                """
+                UPDATE steal_targets
+                SET stolen_amount = stolen_amount + ?
+                WHERE player_id = ? AND target_account = ?
+                """,
+                (amount, player_id, target_account),
+            )
             add_history_entry(
                 conn,
                 player_id,
@@ -1075,10 +1362,11 @@ def transfer_money():
                 amount,
             )
             conn.commit()
+            remaining_after = remaining_amount - amount
             return jsonify(
                 {
                     "status": "success",
-                    "msg": f"Successfully siphoned ${amount:.2f} from {target_account}!",
+                    "msg": f"Successfully siphoned ${amount:.2f} from {target_account}. Remaining hidden liquidity: ${remaining_after:.2f}.",
                 }
             )
 
@@ -1145,6 +1433,60 @@ def transfer_money():
     return jsonify({"status": "error", "msg": "Unsupported transaction type."}), 400
 
 
+@app.route("/api/store/purchase", methods=["POST"])
+@api_login_required
+def purchase_store_item():
+    data = request.get_json(silent=True) or {}
+    item_id = data.get("item_id", "").strip()
+    item = SHOP_ITEMS.get(item_id)
+    if not item:
+        return jsonify({"status": "error", "message": "Unknown procurement item."}), 404
+
+    player_id = session["player_id"]
+    with get_db_connection() as conn:
+        sync_story_state(conn, player_id)
+        lock_response = block_if_locked(conn, player_id)
+        if lock_response:
+            return lock_response
+
+        state_row = get_live_state_row(conn, player_id)
+        if state_row["current_day"] < item["unlock_day"]:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": f"{item['title']} does not unlock until Day {item['unlock_day']}.",
+                }
+            ), 400
+
+        purchased_item_ids = get_player_purchase_ids(conn, player_id)
+        if item_id in purchased_item_ids:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "Item already owned.",
+                }
+            ), 400
+
+        if float(state_row["balance"]) < item["cost"]:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": f"Insufficient funds. {item['title']} costs ${item['cost']:.2f}.",
+                }
+            ), 400
+
+        effect_message = apply_shop_purchase(conn, player_id, item_id)
+        conn.commit()
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": effect_message,
+            "player": get_player_state(player_id),
+        }
+    )
+
+
 @app.route("/api/advance_day", methods=["POST"])
 @api_login_required
 def advance_day():
@@ -1205,7 +1547,12 @@ def final_choice():
             ), 400
 
         if choice == "destroy_ai":
-            sabotage_cost = get_final_choice_cost(state_row["ai_upgrade_level"])
+            purchased_item_ids = get_player_purchase_ids(conn, player_id)
+            sabotage_discount = get_shop_effects(purchased_item_ids)["sabotage_discount"]
+            sabotage_cost = get_final_choice_cost(
+                state_row["ai_upgrade_level"],
+                sabotage_discount,
+            )
             if float(state_row["balance"]) < sabotage_cost:
                 return jsonify(
                     {
