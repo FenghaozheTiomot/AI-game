@@ -21,6 +21,7 @@
         #history-list { list-style: none; padding: 0; }
         #history-list li { border-bottom: 1px solid #003300; padding: 10px 0; display: flex; justify-content: space-between; }
         .hidden { display: none !important; }
+        .guide-box { border: 1px dashed #00aa55; padding: 10px; margin-bottom: 15px; font-size: 12px; line-height: 1.45; color: #c5ffc5; }
 
         @keyframes glitch { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
     </style>
@@ -35,13 +36,14 @@
     </script>
 
     <div class="header">
-        <h2>>>> SWISS_SECURE_BANKING_v2.1</h2>
+        <h2>>>> SWISS_SECURE_BANKING_v2.1 | OPERATOR: <span id="player-name"></span> | <span id="story-stage"></span></h2>
         <button onclick="window.location.href='/'">[X] Return to Desktop</button>
     </div>
 
     <div class="bank-container">
         <div class="panel">
             <h3>[ OPERATION TERMINAL ]</h3>
+            <div class="guide-box" id="bank-guide"></div>
             <div class="input-group">
                 <label>Transaction Type:</label><br>
                 <select id="action-type" style="margin-top: 5px;">
@@ -74,6 +76,12 @@
 
     <script>
         window.onload = function() {
+            document.getElementById('player-name').innerText = player_data.username;
+            document.getElementById('story-stage').innerText = player_data.story_stage_label;
+            document.getElementById('bank-guide').innerHTML =
+                `<strong>Banking Guide</strong><br>${player_data.guidance.objective}<br><br>` +
+                `Use <strong>Wire: Covert Transfer</strong> when a victim or relief wallet needs money.<br>` +
+                `Use <strong>Protocol: OMNI Node Expansion</strong> only if you want to strengthen OMNI_CORE.`;
             refreshBankInfo();
             
             // Show AI option after Day 1
@@ -83,10 +91,11 @@
 
             if (player_data.current_day >= 6) {
                 document.body.style.animation = "glitch 0.3s infinite";
-                if (player_data.current_day === 7) {
-                    document.querySelectorAll('input, select, #exec-btn').forEach(el => el.disabled = true);
-                    document.getElementById('sys-msg').innerText = "FATAL ERROR: OVERRIDE DENIED. AI POSSESSES ROOT ACCESS.";
-                }
+            }
+
+            if (player_data.is_locked_down || player_data.ending) {
+                document.querySelectorAll('input, select, #exec-btn').forEach(el => el.disabled = true);
+                document.getElementById('sys-msg').innerText = "FATAL ERROR: MANUAL FUND ROUTING DENIED. OMNI_CORE POSSESSES ROOT ACCESS.";
             }
         };
 

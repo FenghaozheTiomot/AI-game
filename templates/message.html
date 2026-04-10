@@ -26,6 +26,12 @@
         }
         .clipboard-item { cursor: pointer; text-decoration: underline; margin-bottom: 10px; color: #ffaa00; list-style: square;}
         .clipboard-item:hover { color: #fff; background-color: #331100; }
+        @keyframes glitch { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
+        .guide-box { border: 1px dashed #00aa55; background: #001600; padding: 12px; margin-bottom: 15px; font-size: 12px; line-height: 1.45; color: #c5ffc5; }
+        .suggestion-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .suggestion-item { border: 1px solid #005500; background: #001000; padding: 10px; cursor: pointer; }
+        .suggestion-item:hover { background: #003300; }
+        .suggestion-item strong { color: #fff; }
     </style>
 </head>
 <body>
@@ -38,12 +44,19 @@
     </script>
 
     <div class="header">
-        <h2>>>> SECURE_MESSENGER</h2>
+        <h2>>>> SECURE_MESSENGER | OPERATOR: <span id="player-name"></span> | <span id="story-stage"></span></h2>
         <button onclick="window.location.href='/'">[X] Return to Desktop</button>
     </div>
 
     <div class="main-container">
         <div class="panel">
+            <div class="guide-box">
+                <strong>Messaging Flow</strong><br>
+                1. Enter a recipient ID or click a suggestion below.<br>
+                2. Click a clue in Memory Buffer.<br>
+                3. The box will show the exact line your operator is about to send.<br>
+                4. If a clue does not match the recipient's current phase, the backend will reject it.
+            </div>
             <div class="profile-section">
                 <img id="avatar" class="avatar-img" src="https://api.dicebear.com/7.x/identicon/svg?seed=Unknown&backgroundColor=000000" alt="Avatar">
                 <div class="input-group">
@@ -56,7 +69,9 @@
                 <label>Message Content (Click right panel clue to auto-generate):</label>
                 <textarea id="message-content" rows="10" placeholder="Type here, or click a clue in the buffer to synthesize dialogue..."></textarea>
             </div>
-            <button onclick="executeChat()" style="margin-top: 15px; width: 100%; font-size: 16px; font-weight: bold;">[✉] TRANSMIT PACKET</button>
+            <button id="send-button" onclick="executeChat()" style="margin-top: 15px; width: 100%; font-size: 16px; font-weight: bold;">[✉] TRANSMIT PACKET</button>
+            <div class="guide-box" id="message-objective" style="margin-top: 15px;"></div>
+            <div class="suggestion-list" id="suggestion-list"></div>
         </div>
     </div>
 
@@ -67,25 +82,62 @@
     </div>
 
     <script>
-        let npcMemory = {};
-        
-        // This variable is updated by fetchTemplate to remember which clue is currently active
         let activeClue = "";
 
+        function renderSuggestions() {
+            const container = document.getElementById("suggestion-list");
+            const contacts = player_data.guidance.contacts || [];
+            if (!contacts.length) {
+                container.innerHTML = "";
+                return;
+            }
+
+            container.innerHTML = contacts.map((contact, index) => `
+                <div class="suggestion-item" data-index="${index}">
+                    <strong>${contact.target}</strong><br>
+                    Recommended clue: ${contact.clue}<br>
+                    ${contact.note}
+                </div>
+            `).join("");
+
+            container.querySelectorAll(".suggestion-item").forEach((item) => {
+                item.addEventListener("click", async () => {
+                    const contact = contacts[Number(item.dataset.index)];
+                    document.getElementById("target-id").value = contact.target;
+                    checkAvatar();
+                    await fetchTemplate(contact.clue);
+                });
+            });
+        }
+
         async function executeChat() {
-            const target = document.getElementById("target-id").value;
-            let phase = npcMemory[target] || "phase_01_probe"; 
+            if (player_data.is_locked_down) {
+                document.getElementById("message-content").value += `\n\n[SYSTEM]: Transmission blocked. OMNI_CORE owns this channel.`;
+                return;
+            }
+
+            const target = document.getElementById("target-id").value.trim();
+            const contentBox = document.getElementById("message-content");
+
+            if (!target) {
+                contentBox.value += `\n\n[SYSTEM]: Target is required.`;
+                return;
+            }
+
+            if (!activeClue) {
+                contentBox.value += `\n\n[SYSTEM]: Select a clue from the memory buffer before transmitting.`;
+                return;
+            }
 
             const response = await fetch('/api/send_message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target: target, clue: activeClue, current_phase: phase })
+                body: JSON.stringify({ target: target, clue: activeClue })
             });
             
             const data = await response.json();
             
             if (data.status === "success") {
-                npcMemory[target] = data.next_phase; 
                 document.getElementById("message-content").value += `\n\n--- TARGET RESPONSE ---\n` + data.npc_replies.join("\n");
             } else {
                 document.getElementById("message-content").value += `\n\n[SYSTEM]: ${data.message}`;
@@ -103,23 +155,51 @@
             avatarImg.src = avatarDatabase[targetInput] ? avatarDatabase[targetInput] : defaultAvatar;
         }
 
-        window.onload = function() {
-            loadClipboard();
+        window.onload = async function() {
+            document.getElementById("player-name").innerText = player_data.username;
+            document.getElementById("story-stage").innerText = player_data.story_stage_label;
+            document.getElementById("message-objective").innerHTML =
+                `<strong>Current Objective</strong><br>${player_data.guidance.objective}`;
+            renderSuggestions();
+            await loadClipboard();
             if (player_data.current_day >= 6) {
                 document.body.style.animation = "glitch 0.3s infinite";
             }
+            if (player_data.is_locked_down) {
+                document.getElementById("target-id").disabled = true;
+                document.getElementById("message-content").disabled = true;
+                document.getElementById("send-button").disabled = true;
+                document.getElementById("message-content").value = "[SYSTEM]: Manual messaging privileges revoked by OMNI_CORE.";
+            }
         };
 
-        function loadClipboard() {
+        async function loadClipboard() {
             const list = document.getElementById("clue-list");
             list.innerHTML = "";
-            let clues = JSON.parse(localStorage.getItem('osint_clues')) || [];
-            clues.forEach(text => {
-                list.innerHTML += `<li class="clipboard-item" onclick="fetchTemplate('${text}')">${text}</li>`;
-            });
+            try {
+                const response = await fetch('/api/clues');
+                const data = await response.json();
+                data.clues.forEach(text => {
+                    const item = document.createElement("li");
+                    item.className = "clipboard-item";
+                    item.innerText = text;
+                    item.onclick = () => fetchTemplate(text);
+                    list.appendChild(item);
+                });
+            } catch (error) {
+                const item = document.createElement("li");
+                item.className = "clipboard-item";
+                item.innerText = "[ERROR] Unable to load clue buffer.";
+                list.appendChild(item);
+            }
         }
 
         async function fetchTemplate(clue) {
+            if (player_data.is_locked_down) {
+                document.getElementById("message-content").value = "[SYSTEM]: Dialogue synthesis unavailable during lockdown.";
+                return;
+            }
+
             const target = document.getElementById("target-id").value.trim();
             const contentBox = document.getElementById("message-content");
 
@@ -131,9 +211,25 @@
             contentBox.value = `Accessing database... Synthesizing psychological vector for [${target}] using [${clue}]...`;
             activeClue = clue;
 
-            setTimeout(() => {
-                contentBox.value = `I have information regarding: ${clue}. \nAre you willing to negotiate?`;
-            }, 400); 
+            try {
+                const response = await fetch('/api/message_preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: target, clue: clue })
+                });
+                const data = await response.json();
+                setTimeout(() => {
+                    if (data.status === "success") {
+                        contentBox.value = data.preview;
+                    } else {
+                        contentBox.value = `[SYSTEM]: ${data.message}`;
+                    }
+                }, 250);
+            } catch (error) {
+                setTimeout(() => {
+                    contentBox.value = `I have information regarding: ${clue}. \nAre you willing to negotiate?`;
+                }, 250);
+            }
         }
     </script>
 </body>

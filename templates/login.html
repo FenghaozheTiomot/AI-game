@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OPERATOR_ACCESS</title>
+    <style>
+        body {
+            background:
+                radial-gradient(circle at top, rgba(0, 255, 0, 0.08), transparent 35%),
+                linear-gradient(180deg, #020702 0%, #000 100%);
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        .login-shell {
+            width: min(480px, 100%);
+            border: 1px solid #005500;
+            background: rgba(0, 18, 0, 0.92);
+            box-shadow: 0 0 30px rgba(0, 255, 100, 0.12);
+            padding: 28px;
+        }
+        h1 {
+            margin: 0 0 12px 0;
+            color: #e6ffe6;
+            font-size: 28px;
+        }
+        p {
+            color: #88aa88;
+            line-height: 1.5;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 24px;
+        }
+        input {
+            background: #000;
+            color: #00ff88;
+            border: 1px solid #00aa55;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 15px;
+        }
+        input:focus {
+            outline: none;
+            background: #001a00;
+        }
+        button {
+            background: #003300;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00ff88;
+            color: #000;
+        }
+        .error {
+            color: #ff6666;
+            margin-top: 10px;
+        }
+        .hint {
+            color: #ffaa00;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-shell">
+        <div>[ MULTI-OPERATOR ACCESS GATEWAY ]</div>
+        <h1>Authenticate Operator</h1>
+        <p>Each player name maps to an independent persistent run. Reuse a previous name to continue that player's save.</p>
+        <form method="post" action="/login">
+            <label for="username">Operator Name</label>
+            <input id="username" name="username" type="text" minlength="2" maxlength="24" required placeholder="Enter operator handle">
+            <button type="submit">[ ESTABLISH SESSION ]</button>
+        </form>
+        <div class="hint">Prototype mode: no password yet. Use distinct names for distinct players.</div>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>

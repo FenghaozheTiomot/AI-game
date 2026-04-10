@@ -36,6 +36,8 @@
         button { cursor: pointer; background: #003300; font-weight: bold; }
         button:hover { background: #00ff00; color: #000; }
         #terminal-output { flex: 1; background: #000; border: 1px dashed #005500; padding: 10px; overflow-y: auto; font-size: 13px; line-height: 1.5; color: #00cccc; }
+        .guide-box { border: 1px dashed #00aa55; padding: 10px; margin-bottom: 12px; font-size: 12px; line-height: 1.45; color: #c5ffc5; }
+        .guide-box strong { color: #fff; }
     </style>
 </head>
 <body>
@@ -47,7 +49,7 @@
         const player_data = JSON.parse(document.getElementById('player-data-store').textContent);
     </script>
 
-    <div id="top-bar">>>> OSINT_TERMINAL_v6.0 | SURVEILLANCE OVERWATCH</div>
+    <div id="top-bar">>>> OSINT_TERMINAL_v6.0 | SURVEILLANCE OVERWATCH | OPERATOR: <span id="player-name"></span> | <span id="story-stage"></span></div>
     <button onclick="window.location.href='/'" style="float:right; margin:-30px 20px 0 0;">Exit to Desktop</button>
 
     <div id="main-content">
@@ -70,11 +72,19 @@
         <div id="right-panel" class="panel">
             <div id="notebook">
                 <span style="color:#888;">[ MEMORY BUFFER / CLUES ]</span>
+                <div class="guide-box">
+                    <strong>Search Flow</strong><br>
+                    1. Open archive messages on the left.<br>
+                    2. Click underlined green strings to archive clues.<br>
+                    3. Click a clue here to paste it into the query box.<br>
+                    4. Search it to reveal contact IDs, wallets, and next-step info.
+                </div>
                 <ul id="clue-list"></ul>
             </div>
 
             <div id="search-terminal">
                 <h3 style="margin: 0 0 15px 0; color: #fff;">>>> QUERY_CONSOLE</h3>
+                <div class="guide-box" id="search-objective"></div>
                 <div class="input-group">
                     <select id="db-selector">
                         <option value="surface">Surface Web (Public)</option>
@@ -84,7 +94,7 @@
                 </div>
                 <div class="input-group">
                     <input type="text" id="search-input" placeholder="Enter query string...">
-                    <button onclick="executeSearch()">SUBMIT [ENTER]</button>
+                    <button id="search-button" onclick="executeSearch()">SUBMIT [ENTER]</button>
                 </div>
                 <div id="terminal-output">
                     [SYSTEM] Console ready. Remote uplink established...
@@ -97,13 +107,24 @@
         let allCasesData = []; 
 
         window.onload = async function() {
-            loadClipboard(); 
+            document.getElementById("player-name").innerText = player_data.username;
+            document.getElementById("story-stage").innerText = player_data.story_stage_label;
+            document.getElementById("search-objective").innerHTML =
+                `<strong>Current Objective</strong><br>${player_data.guidance.objective}`;
+            await loadClipboard();
             try {
                 const response = await fetch('/api/cases');
                 allCasesData = await response.json();
                 renderCaseList();
             } catch (error) {
                 document.getElementById('folder-container').innerHTML = "<p style='color:red;'>Failed to connect to database server.</p>";
+            }
+
+            if (player_data.is_locked_down) {
+                document.getElementById("db-selector").disabled = true;
+                document.getElementById("search-input").disabled = true;
+                document.getElementById("search-button").disabled = true;
+                printToTerminal("[LOCKDOWN] OMNI_CORE has revoked manual search privileges.", "#ff5555");
             }
         };
 
@@ -151,22 +172,46 @@
             document.getElementById('view-case-list').classList.remove('hidden');
         }
 
-        function loadClipboard() {
+        async function loadClipboard() {
             const list = document.getElementById("clue-list");
             list.innerHTML = "";
-            let clues = JSON.parse(localStorage.getItem('osint_clues')) || [];
-            clues.forEach(text => {
-                list.innerHTML += `<li class="clipboard-item" onclick="pasteToInput('${text}')">${text}</li>`;
-            });
+            try {
+                const response = await fetch('/api/clues');
+                const data = await response.json();
+                data.clues.forEach(text => {
+                    const item = document.createElement("li");
+                    item.className = "clipboard-item";
+                    item.innerText = text;
+                    item.onclick = () => pasteToInput(text);
+                    list.appendChild(item);
+                });
+            } catch (error) {
+                printToTerminal("[ERROR] Unable to load clue buffer.", "#ff5555");
+            }
         }
 
-        function extractToNotebook(text) {
-            let clues = JSON.parse(localStorage.getItem('osint_clues')) || [];
-            if (!clues.includes(text)) {
-                clues.push(text);
-                localStorage.setItem('osint_clues', JSON.stringify(clues)); 
-                loadClipboard(); 
-                printToTerminal(`[SYS_MSG] Extracted string: "${text}"`, "#888");
+        async function extractToNotebook(text) {
+            if (player_data.is_locked_down) {
+                printToTerminal("[LOCKDOWN] New clue capture denied while OMNI_CORE controls the terminal.", "#ff5555");
+                return;
+            }
+            try {
+                const response = await fetch('/api/clues', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clue: text })
+                });
+                const data = await response.json();
+                if (data.status === "success") {
+                    await loadClipboard();
+                    const prefix = data.added ? "[SYS_MSG]" : "[CACHE]";
+                    const suffix = data.added ? "Extracted string" : "Clue already archived";
+                    printToTerminal(`${prefix} ${suffix}: "${text}"`, "#888");
+                } else {
+                    printToTerminal(data.message || "[ERROR] Failed to archive clue.", "#ff5555");
+                }
+            } catch (error) {
+                printToTerminal("[CRITICAL ERROR] Failed to persist clue.", "#ff5555");
             }
         }
 
@@ -184,6 +229,11 @@
         }
 
         async function executeSearch() {
+            if (player_data.is_locked_down) {
+                printToTerminal("[LOCKDOWN] Query console is no longer under human control.", "#ff5555");
+                return;
+            }
+
             const dbType = document.getElementById("db-selector").value;
             const keyword = document.getElementById("search-input").value.trim();
             

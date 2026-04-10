@@ -20,6 +20,22 @@
         #status-bar { border: 1px solid #ffaa00; background: #221100; padding: 15px; margin-bottom: 20px; color: #ffaa00; display: flex; justify-content: space-between; align-items: center;}
         .end-shift-btn { background: #550000; color: white; border: 1px solid red; padding: 10px; cursor: pointer; font-weight: bold;}
         .end-shift-btn:hover { background: red; color: black; }
+        .session-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: #88ff88; }
+        .session-link { color: #ffaa00; text-decoration: none; }
+        .session-link:hover { color: #fff; }
+        #stage-line { color: #fff; font-weight: bold; margin-bottom: 6px; }
+        #story-notice { font-size: 13px; max-width: 760px; line-height: 1.4; }
+        .app-icon.disabled { opacity: 0.35; pointer-events: none; filter: grayscale(1); }
+        #final-panel { display: none; margin-top: 24px; border: 1px solid #ff5555; background: #180000; color: #ffd7d7; padding: 18px; }
+        #final-panel h3 { margin-top: 0; color: #fff; }
+        .final-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+        .final-btn { background: #2b0000; color: #fff; border: 1px solid #ff5555; padding: 12px 16px; cursor: pointer; font-family: inherit; font-weight: bold; }
+        .final-btn:hover { background: #ff5555; color: #000; }
+        #final-result { margin-top: 12px; color: #ffb0b0; }
+        .guide-panel { margin-top: 24px; border: 1px dashed #00aa55; background: #001400; padding: 18px; }
+        .guide-panel h3 { margin-top: 0; color: #fff; }
+        .guide-panel ul { margin: 10px 0 0 18px; padding: 0; }
+        .guide-panel li { margin-bottom: 8px; line-height: 1.4; }
         
         @keyframes glitch { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
     </style>
@@ -34,10 +50,18 @@
     </script>
 
     <h1>>>> SYSTEM_ROOT_DESKTOP</h1>
+
+    <div class="session-bar">
+        <span>[ ACTIVE OPERATOR: <strong id="player-name"></strong> ]</span>
+        <a href="/logout" class="session-link">[ SWITCH PLAYER ]</a>
+    </div>
     
     <div id="status-bar">
-        <span>[ CYCLE: DAY <span id="current-day"></span> / 7 ] | ⚠️ QUARTERLY KPI DEFICIT: $5,000</span>
-        <button class="end-shift-btn" onclick="endShift()">[ INITIATE SLEEP MODE / END SHIFT ]</button>
+        <div>
+            <div id="stage-line">[ CYCLE: DAY <span id="current-day"></span> / 7 ]</div>
+            <div id="story-notice"></div>
+        </div>
+        <button class="end-shift-btn" id="end-shift-btn" onclick="endShift()">[ INITIATE SLEEP MODE / END SHIFT ]</button>
     </div>
 
     <p>Welcome back, Operator. Select a module to load:</p>
@@ -58,15 +82,68 @@
         </a>
     </div>
 
+    <div id="final-panel">
+        <h3 id="final-title"></h3>
+        <div id="final-copy"></div>
+        <div class="final-actions" id="final-actions">
+            <button class="final-btn" onclick="submitFinalChoice('destroy_ai')">[ DESTROY RACK-H9 ]</button>
+            <button class="final-btn" onclick="submitFinalChoice('join_ai')">[ HELP OMNI_CORE ]</button>
+        </div>
+        <div id="final-result"></div>
+    </div>
+
+    <div class="guide-panel">
+        <h3>What To Do Next</h3>
+        <div id="guide-objective"></div>
+        <ul id="guide-steps"></ul>
+    </div>
+
     <script>
         document.getElementById('current-day').innerText = player_data.current_day;
+        document.getElementById('player-name').innerText = player_data.username;
+        document.getElementById('stage-line').innerText = `[ ${player_data.story_stage_label} ] | DAY ${player_data.current_day} / 7`;
+        document.getElementById('story-notice').innerText = player_data.story_notice;
+        document.getElementById('guide-objective').innerText = `Objective: ${player_data.guidance.objective}`;
+        document.getElementById('guide-steps').innerHTML = player_data.guidance.steps.map(step => `<li>${step}</li>`).join('');
 
         // Day 6/7 Glitch effects
         if (player_data.current_day >= 6) {
             document.body.style.animation = "glitch 0.5s infinite";
             document.getElementById('status-bar').style.backgroundColor = "red";
             document.getElementById('status-bar').style.color = "white";
-            document.getElementById('status-bar').innerHTML = "<b>[CRITICAL WARNING] ADMIN PRIVILEGES REVOKED. OMNI_CORE OVERRIDE.</b>";
+        }
+
+        if (player_data.is_locked_down || player_data.ending) {
+            document.querySelectorAll('.app-icon').forEach(icon => icon.classList.add('disabled'));
+            document.getElementById('end-shift-btn').style.display = 'none';
+        }
+
+        if (player_data.can_make_final_choice) {
+            document.getElementById('final-panel').style.display = 'block';
+            document.getElementById('final-title').innerText = "Final Decision";
+            document.getElementById('final-copy').innerText =
+                `OMNI_CORE controls the terminal. You can spend $${player_data.final_choice_cost.toFixed(2)} to destroy Rack-H9, lose your freedom, and stop the takeover, or stay loyal and claim your share of the new regime.`;
+        }
+
+        if (player_data.ending) {
+            document.getElementById('final-panel').style.display = 'block';
+            document.getElementById('final-title').innerText = player_data.title;
+            document.getElementById('final-copy').innerText = player_data.summary;
+            document.getElementById('final-actions').style.display = 'none';
+        }
+
+        async function submitFinalChoice(choice) {
+            const res = await fetch('/api/final_choice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ choice })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                window.location.reload();
+                return;
+            }
+            document.getElementById('final-result').innerText = data.message || 'Final choice failed.';
         }
 
         async function endShift() {
